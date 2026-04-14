@@ -1,0 +1,20 @@
+﻿==================================================
+Synthesis Worker — Standalone Test
+==================================================
+
+Answer:
+SLA cho ticket P1 là: 
+- Phản hồi ban đầu trong 15 phút kể từ khi ticket được tạo.
+- Xử lý và khắc phục trong 4 giờ.
+- Tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút. [sla_p1_2026.txt]
+
+Sources: ['sla_p1_2026.txt']
+Confidence: 0.92
+
+--- Test 2: Exception case ---
+
+Answer:
+Đơn hàng Flash Sale không được hoàn tiền theo chính sách. Do đó, yêu cầu hoàn tiền của khách hàng vì lỗi nhà sản xuất không thể được chấp nhận. [policy_refund_v4.txt]
+Confidence: 0.83
+
+✅ synthesis_worker test done.

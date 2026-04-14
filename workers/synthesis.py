@@ -17,6 +17,9 @@ Gọi độc lập để test:
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 WORKER_NAME = "synthesis_worker"
 
@@ -101,7 +104,13 @@ def _estimate_confidence(chunks: list, answer: str, policy_result: dict) -> floa
     if answer.startswith("[SYNTHESIS ERROR]"):
         return 0.1
 
-    if "Không đủ thông tin" in answer or "không có trong tài liệu" in answer.lower():
+    lower_answer = answer.lower()
+    if (
+        "không đủ thông tin" in lower_answer
+        or "khong du thong tin" in lower_answer
+        or "không có trong tài liệu" in lower_answer
+        or "khong co trong tai lieu" in lower_answer
+    ):
         return 0.3  # Abstain → moderate-low
 
     # Weighted average của chunk scores
@@ -119,19 +128,19 @@ def _estimate_confidence(chunks: list, answer: str, policy_result: dict) -> floa
 
 
 def _has_citation(text: str) -> bool:
-    """Kiem tra answer da co citation kieu [1] hoac [source_name] chua."""
+    """Kiểm tra answer đã có citation kiểu [1] hoặc [source_name] chưa."""
     if not text:
         return False
     return "[" in text and "]" in text
 
 def _ensure_citations(answer: str, sources: list) -> str:
-    """Neu chua co citation, gan them cuoi answer."""
+    """Nếu chưa có citation, gắn thêm cuối answer."""
     if not sources:
         return answer
     if _has_citation(answer):
         return answer
     cite = " ".join(f"[{s}]" for s in sources)
-    return f"{answer}\nNguon: {cite}"
+    return f"{answer}\nNguồn: {cite}"
 
 def synthesize(task: str, chunks: list, policy_result: dict) -> dict:
     """
@@ -141,8 +150,8 @@ def synthesize(task: str, chunks: list, policy_result: dict) -> dict:
         {"answer": str, "sources": list, "confidence": float}
     """
     if not chunks:
-        # Khong co evidence -> abstain ngay, khong goi LLM
-        answer = "Khong du thong tin trong tai lieu noi bo."
+        # Không có evidence -> abstain ngay, không gọi LLM
+        answer = "Không đủ thông tin trong tài liệu nội bộ."
         return {"answer": answer, "sources": [], "confidence": 0.1}
 
     context = _build_context(chunks, policy_result)
@@ -198,6 +207,7 @@ def run(state: dict) -> dict:
     try:
         result = synthesize(task, chunks, policy_result)
         state["final_answer"] = result["answer"]
+        state["answer"] = result["answer"]
         state["sources"] = result["sources"]
         state["confidence"] = result["confidence"]
         state["hitl_triggered"] = bool(state.get("hitl_triggered", False) or result["confidence"] < 0.4)
@@ -215,6 +225,7 @@ def run(state: dict) -> dict:
     except Exception as e:
         worker_io["error"] = {"code": "SYNTHESIS_FAILED", "reason": str(e)}
         state["final_answer"] = f"SYNTHESIS_ERROR: {e}"
+        state["answer"] = state["final_answer"]
         state["confidence"] = 0.0
         state["history"].append(f"[{WORKER_NAME}] ERROR: {e}")
 

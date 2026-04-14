@@ -1,0 +1,42 @@
+{
+  "task": "SLA ticket P1 là bao lâu?",
+  "retrieved_chunks": [
+    {
+      "text": "Ticket P1: Phản hồi ban đầu 15 phút kể từ khi ticket được tạo. Xử lý và khắc phục 4 giờ. Escalation: tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút.",
+      "source": "sla_p1_2026.txt",
+      "score": 0.92
+    }
+  ],
+  "policy_result": {},
+  "workers_called": [
+    "synthesis_worker"
+  ],
+  "history": [
+    "[synthesis_worker] answer generated, confidence=0.92, sources=['sla_p1_2026.txt']"
+  ],
+  "final_answer": "SLA cho ticket P1 là phản hồi ban đầu trong 15 phút, xử lý và khắc phục trong 4 giờ. Nếu không có phản hồi trong 10 phút, ticket sẽ tự động được escalate lên Senior Engineer [sla_p1_2026.txt].",
+  "answer": "SLA cho ticket P1 là phản hồi ban đầu trong 15 phút, xử lý và khắc phục trong 4 giờ. Nếu không có phản hồi trong 10 phút, ticket sẽ tự động được escalate lên Senior Engineer [sla_p1_2026.txt].",
+  "sources": [
+    "sla_p1_2026.txt"
+  ],
+  "confidence": 0.92,
+  "hitl_triggered": false,
+  "worker_io_logs": [
+    {
+      "worker": "synthesis_worker",
+      "input": {
+        "task": "SLA ticket P1 là bao lâu?",
+        "chunks_count": 1,
+        "has_policy": false
+      },
+      "output": {
+        "answer_length": 192,
+        "sources": [
+          "sla_p1_2026.txt"
+        ],
+        "confidence": 0.92
+      },
+      "error": null
+    }
+  ]
+}
