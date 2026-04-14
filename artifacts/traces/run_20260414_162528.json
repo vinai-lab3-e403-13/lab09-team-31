@@ -1,0 +1,103 @@
+{
+  "task": "Ai phải phê duyệt để cấp quyền Level 3?",
+  "route_reason": "task contains policy/access keyword",
+  "risk_high": false,
+  "needs_tool": true,
+  "hitl_triggered": true,
+  "retrieved_chunks": [
+    {
+      "text": "[MOCK fallback] Không thể query ChromaDB: The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable",
+      "source": "mock_data",
+      "score": 0.5
+    }
+  ],
+  "retrieved_sources": [],
+  "policy_result": {
+    "policy_applies": true,
+    "policy_name": "refund_policy_v4",
+    "exceptions_found": [],
+    "source": [
+      "mock_data"
+    ],
+    "policy_version_note": "",
+    "explanation": "[Rule-based fallback] Không phát hiện exception nào. Policy v4 áp dụng bình thường."
+  },
+  "mcp_tools_used": [
+    {
+      "tool": "search_kb",
+      "input": {
+        "query": "Ai phải phê duyệt để cấp quyền Level 3?",
+        "top_k": 3
+      },
+      "output": {
+        "chunks": [
+          {
+            "text": "[MOCK fallback] Không thể query ChromaDB: The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable",
+            "source": "mock_data",
+            "score": 0.5
+          }
+        ],
+        "sources": [
+          "mock_data"
+        ],
+        "total_found": 1
+      },
+      "error": null,
+      "timestamp": "2026-04-14T16:25:28.432955"
+    }
+  ],
+  "final_answer": "[SYNTHESIS ERROR] Không thể gọi LLM. Kiểm tra API key trong .env.",
+  "sources": [
+    "mock_data"
+  ],
+  "confidence": 0.1,
+  "history": [
+    "[supervisor] received task: Ai phải phê duyệt để cấp quyền Level 3?",
+    "[supervisor] route=policy_tool_worker reason=task contains policy/access keyword",
+    "[policy_tool_worker] called MCP search_kb",
+    "[policy_tool_worker] policy_applies=True, exceptions=0",
+    "[synthesis_worker] answer generated, confidence=0.1, sources=['mock_data']",
+    "[graph] completed in 9097ms"
+  ],
+  "workers_called": [
+    "policy_tool_worker",
+    "synthesis_worker"
+  ],
+  "supervisor_route": "policy_tool_worker",
+  "latency_ms": 9097,
+  "run_id": "run_20260414_162528",
+  "worker_io_logs": [
+    {
+      "worker": "policy_tool_worker",
+      "input": {
+        "task": "Ai phải phê duyệt để cấp quyền Level 3?",
+        "chunks_count": 0,
+        "needs_tool": true
+      },
+      "output": {
+        "policy_applies": true,
+        "exceptions_count": 0,
+        "mcp_calls": 1
+      },
+      "error": null
+    },
+    {
+      "worker": "synthesis_worker",
+      "input": {
+        "task": "Ai phải phê duyệt để cấp quyền Level 3?",
+        "chunks_count": 1,
+        "has_policy": true
+      },
+      "output": {
+        "answer_length": 65,
+        "sources": [
+          "mock_data"
+        ],
+        "confidence": 0.1
+      },
+      "error": null
+    }
+  ],
+  "answer": "[SYNTHESIS ERROR] Không thể gọi LLM. Kiểm tra API key trong .env.",
+  "question_id": "q03"
+}
