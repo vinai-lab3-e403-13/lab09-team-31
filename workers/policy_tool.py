@@ -67,7 +67,8 @@ def _call_mcp_tool(tool_name: str, tool_input: dict) -> dict:
 # ─────────────────────────────────────────────
 
 _POLICY_SYSTEM_PROMPT = """Bạn là policy analyst nội bộ. Nhiệm vụ:
-Dựa vào context tài liệu, đưa ra kết luận ngắn gọn: yêu cầu có được chấp thuận không và lý do chính.
+Dựa vào context tài liệu VÀ kết quả rule-based đã cung cấp, đưa ra explanation ngắn gọn 1-2 câu.
+QUAN TRỌNG: Nếu rule-based đã xác định policy_applies=False, KHÔNG được kết luận ngược lại.
 KHÔNG suy đoán ngoài context. Trả lời đúng 1-2 câu, dùng làm explanation."""
 
 
@@ -76,6 +77,7 @@ def _analyze_policy_with_llm(
     chunks: list,
     rule_exceptions: list,
     policy_version_note: str,
+    policy_applies: bool = True,
 ) -> str:
     """
     Gọi LLM để phân tích policy phức tạp hơn rule-based.
@@ -102,6 +104,8 @@ def _analyze_policy_with_llm(
 
     user_content = (
         f"Yêu cầu: {task}\n\n"
+        f"=== Kết quả rule-based ===\n"
+        f"policy_applies (rule-based): {policy_applies}\n\n"
         f"=== Context tài liệu ===\n{context_text}\n\n"
         f"=== Rule-based exceptions đã phát hiện ===\n{exception_notes}"
         f"{version_note}"
@@ -223,7 +227,10 @@ def analyze_policy(task: str, chunks: list) -> dict:
         })
 
     # Sprint 2: Gọi LLM để phân tích phức tạp hơn (nếu có chunks)
-    llm_analysis = _analyze_policy_with_llm(task, chunks, exceptions_found, policy_version_note)
+    llm_analysis = _analyze_policy_with_llm(
+        task, chunks, exceptions_found, policy_version_note,
+        policy_applies=policy_applies,
+    )
 
     sources = list({c.get("source", "unknown") for c in chunks if c})
 
