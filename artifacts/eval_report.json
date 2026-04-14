@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-04-14T17:03:02.775114",
+  "day08_single_agent": {
+    "total_questions": 15,
+    "retrieval_mode": "dense",
+    "faithfulness_score_5": 3.7,
+    "answer_relevance_score_5": 3.7,
+    "context_recall_score_5": 5.0,
+    "completeness_score_5": 3.9,
+    "avg_latency_ms": "N/A",
+    "abstain_rate": "N/A",
+    "multi_hop_accuracy": "N/A",
+    "notes": [
+      "Nguồn: lab08-team-31/docs/tuning-log.md",
+      "Day 08 baseline mạnh ở retrieval recall nhưng yếu hơn ở generation grounded và negative reasoning."
+    ]
+  },
+  "day09_multi_agent": {
+    "total_traces": 57,
+    "routing_distribution": {
+      "policy_tool_worker": "34/57 (59%)",
+      "retrieval_worker": "23/57 (40%)"
+    },
+    "avg_confidence": 0.411,
+    "avg_latency_ms": 6853,
+    "mcp_usage_rate": "29/57 (50%)",
+    "hitl_rate": "23/57 (40%)",
+    "top_sources": [
+      [
+        "support/sla-p1-2026.pdf",
+        10
+      ],
+      [
+        "it/access-control-sop.md",
+        9
+      ],
+      [
+        "sla_p1_2026.txt",
+        5
+      ],
+      [
+        "policy/refund-v4.pdf",
+        4
+      ],
+      [
+        "support/helpdesk-faq.md",
+        4
+      ]
+    ]
+  },
+  "analysis": {
+    "routing_visibility": "Day 09 có supervisor_route, route_reason, workers_called và hitl_triggered cho từng run nên dễ debug hơn Day 08.",
+    "day08_observation": "Day 08 có context recall rất cao (5.00/5) nhưng faithfulness và completeness chỉ ở mức trung bình do answer generation đôi lúc abstain sớm hoặc suy diễn ngoài evidence.",
+    "day09_observation": "Day 09 hiện đã chạy end-to-end được 15/15 câu test với API hoạt động, tạo trace đầy đủ và cho thấy orchestration, MCP usage và HITL đều được kích hoạt trong thực tế.",
+    "latency_delta": "Day 09 chậm hơn Day 08 ở trạng thái hiện tại; trung bình trace khoảng 6853ms và các câu policy/multi-hop thường mất 4-8 giây hoặc hơn.",
+    "accuracy_delta": "Chưa thể so sánh công bằng với Day 08 theo cùng rubric vì Day 09 hiện chưa có scorecard faithfulness/completeness trên thang /5.",
+    "debuggability": "Multi-agent: có thể test từng worker độc lập và xem trace theo từng bước. Single-agent: khó tách lỗi theo chặng.",
+    "mcp_benefit": "Day 09 có khả năng mở rộng qua MCP mà không cần sửa toàn bộ prompt/pipeline trung tâm như Day 08."
+  }
+}

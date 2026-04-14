@@ -185,7 +185,7 @@ def analyze_traces(traces_dir: str = "artifacts/traces") -> dict:
 
     traces = []
     for fname in trace_files:
-        with open(os.path.join(traces_dir, fname)) as f:
+        with open(os.path.join(traces_dir, fname), encoding="utf-8") as f:
             traces.append(json.load(f))
 
     # Compute metrics
@@ -242,25 +242,33 @@ def compare_single_vs_multi(
     """
     So sánh Day 08 (single agent RAG) vs Day 09 (multi-agent).
 
-    TODO Sprint 4: Điền kết quả thực tế từ Day 08 vào day08_baseline.
+    Day 08 baseline được tổng hợp từ:
+    - docs/architecture.md
+    - docs/tuning-log.md
 
     Returns:
         dict của comparison metrics
     """
     multi_metrics = analyze_traces(multi_traces_dir)
 
-    # TODO: Load Day 08 results nếu có
-    # Nếu không có, dùng baseline giả lập để format
     day08_baseline = {
         "total_questions": 15,
-        "avg_confidence": 0.0,          # TODO: Điền từ Day 08 eval.py
-        "avg_latency_ms": 0,            # TODO: Điền từ Day 08
-        "abstain_rate": "?",            # TODO: Điền từ Day 08
-        "multi_hop_accuracy": "?",      # TODO: Điền từ Day 08
+        "retrieval_mode": "dense",
+        "faithfulness_score_5": 3.70,
+        "answer_relevance_score_5": 3.70,
+        "context_recall_score_5": 5.00,
+        "completeness_score_5": 3.90,
+        "avg_latency_ms": "N/A",
+        "abstain_rate": "N/A",
+        "multi_hop_accuracy": "N/A",
+        "notes": [
+            "Nguồn: lab08-team-31/docs/tuning-log.md",
+            "Day 08 baseline mạnh ở retrieval recall nhưng yếu hơn ở generation grounded và negative reasoning.",
+        ],
     }
 
     if day08_results_file and os.path.exists(day08_results_file):
-        with open(day08_results_file) as f:
+        with open(day08_results_file, encoding="utf-8") as f:
             day08_baseline = json.load(f)
 
     comparison = {
@@ -268,11 +276,13 @@ def compare_single_vs_multi(
         "day08_single_agent": day08_baseline,
         "day09_multi_agent": multi_metrics,
         "analysis": {
-            "routing_visibility": "Day 09 có route_reason cho từng câu → dễ debug hơn Day 08",
-            "latency_delta": "TODO: Điền delta latency thực tế",
-            "accuracy_delta": "TODO: Điền delta accuracy thực tế từ grading",
-            "debuggability": "Multi-agent: có thể test từng worker độc lập. Single-agent: không thể.",
-            "mcp_benefit": "Day 09 có thể extend capability qua MCP không cần sửa core. Day 08 phải hard-code.",
+            "routing_visibility": "Day 09 có supervisor_route, route_reason, workers_called và hitl_triggered cho từng run nên dễ debug hơn Day 08.",
+            "day08_observation": "Day 08 có context recall rất cao (5.00/5) nhưng faithfulness và completeness chỉ ở mức trung bình do answer generation đôi lúc abstain sớm hoặc suy diễn ngoài evidence.",
+            "day09_observation": "Day 09 hiện đã chạy end-to-end được 15/15 câu test với API hoạt động, tạo trace đầy đủ và cho thấy orchestration, MCP usage và HITL đều được kích hoạt trong thực tế.",
+            "latency_delta": "Day 09 chậm hơn Day 08 ở trạng thái hiện tại; trung bình trace khoảng 6853ms và các câu policy/multi-hop thường mất 4-8 giây hoặc hơn.",
+            "accuracy_delta": "Chưa thể so sánh công bằng với Day 08 theo cùng rubric vì Day 09 hiện chưa có scorecard faithfulness/completeness trên thang /5.",
+            "debuggability": "Multi-agent: có thể test từng worker độc lập và xem trace theo từng bước. Single-agent: khó tách lỗi theo chặng.",
+            "mcp_benefit": "Day 09 có khả năng mở rộng qua MCP mà không cần sửa toàn bộ prompt/pipeline trung tâm như Day 08.",
         },
     }
 
