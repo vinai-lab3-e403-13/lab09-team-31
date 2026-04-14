@@ -1,6 +1,6 @@
 # Báo Cáo Cá Nhân — Lab Day 09: Multi-Agent Orchestration
 
-**Họ và tên:** Trần Kiên Trường  
+**Họ và tên:** Trần Kiên Trường 2A202600496
 **Vai trò trong nhóm:** Worker Owner
 **Ngày nộp:** 14/04/2026 
 **Độ dài yêu cầu:** 500–800 từ
