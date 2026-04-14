@@ -17,8 +17,12 @@ Gọi độc lập để test:
 """
 
 import os
+import re
 import sys
 from typing import Optional
+
+from dotenv import load_dotenv
+load_dotenv()
 
 WORKER_NAME = "policy_tool_worker"
 
@@ -56,6 +60,78 @@ def _call_mcp_tool(tool_name: str, tool_input: dict) -> dict:
             "error": {"code": "MCP_CALL_FAILED", "reason": str(e)},
             "timestamp": datetime.now().isoformat(),
         }
+
+
+# ─────────────────────────────────────────────
+# LLM-based Policy Analysis — Sprint 2
+# ─────────────────────────────────────────────
+
+_POLICY_SYSTEM_PROMPT = """Bạn là policy analyst nội bộ. Nhiệm vụ:
+Dựa vào context tài liệu, đưa ra kết luận ngắn gọn: yêu cầu có được chấp thuận không và lý do chính.
+KHÔNG suy đoán ngoài context. Trả lời đúng 1-2 câu, dùng làm explanation."""
+
+
+def _analyze_policy_with_llm(
+    task: str,
+    chunks: list,
+    rule_exceptions: list,
+    policy_version_note: str,
+) -> str:
+    """
+    Gọi LLM để phân tích policy phức tạp hơn rule-based.
+    Trả về explanation string; không raise exception (có fallback).
+
+    Args:
+        task: câu hỏi gốc
+        chunks: retrieved context chunks
+        rule_exceptions: exceptions đã phát hiện bởi rule-based logic
+        policy_version_note: ghi chú về version policy (v3/v4)
+    """
+    if not chunks:
+        return "Không có context chunks — rule-based only."
+
+    context_text = "\n".join(
+        f"[{c.get('source', 'unknown')}] {c.get('text', '')}" for c in chunks
+    )
+    exception_notes = (
+        "\n".join(f"- {ex['rule']}" for ex in rule_exceptions)
+        if rule_exceptions
+        else "Không có exception nào được phát hiện."
+    )
+    version_note = f"\nLưu ý version: {policy_version_note}" if policy_version_note else ""
+
+    user_content = (
+        f"Yêu cầu: {task}\n\n"
+        f"=== Context tài liệu ===\n{context_text}\n\n"
+        f"=== Rule-based exceptions đã phát hiện ===\n{exception_notes}"
+        f"{version_note}"
+    )
+    messages = [
+        {"role": "system", "content": _POLICY_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+
+    # Option A: OpenAI
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.1,
+            max_tokens=80,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        # print debug
+        print(f"LLM analysis failed: {e}")
+        pass
+
+    # Fallback: rule-based summary
+    if rule_exceptions:
+        rules = "; ".join(ex["rule"] for ex in rule_exceptions)
+        return f"[Rule-based fallback] Exceptions phát hiện: {rules}"
+    return "[Rule-based fallback] Không phát hiện exception nào. Policy v4 áp dụng bình thường."
 
 
 # ─────────────────────────────────────────────
@@ -111,26 +187,48 @@ def analyze_policy(task: str, chunks: list) -> dict:
     policy_applies = len(exceptions_found) == 0
 
     # Determine which policy version applies (temporal scoping)
-    # TODO: Check nếu đơn hàng trước 01/02/2026 → v3 applies (không có docs, nên flag cho synthesis)
+    # policy_refund_v4.txt — Điều 1: áp dụng cho đơn hàng từ 01/02/2026.
+    # Đơn hàng đặt trước ngày đó → policy v3 (không có trong docs hiện tại → flag cho synthesis).
     policy_name = "refund_policy_v4"
     policy_version_note = ""
-    if "31/01" in task_lower or "30/01" in task_lower or "trước 01/02" in task_lower:
-        policy_version_note = "Đơn hàng đặt trước 01/02/2026 áp dụng chính sách v3 (không có trong tài liệu hiện tại)."
 
-    # TODO Sprint 2: Gọi LLM để phân tích phức tạp hơn
-    # Ví dụ:
-    # from openai import OpenAI
-    # client = OpenAI()
-    # response = client.chat.completions.create(
-    #     model="gpt-4o-mini",
-    #     messages=[
-    #         {"role": "system", "content": "Bạn là policy analyst. Dựa vào context, xác định policy áp dụng và các exceptions."},
-    #         {"role": "user", "content": f"Task: {task}\n\nContext:\n" + "\n".join([c['text'] for c in chunks])}
-    #     ]
-    # )
-    # analysis = response.choices[0].message.content
+    # Detect date patterns that indicate an order placed before 01/02/2026
+    _pre_v4_date_patterns = [
+        r"\b(3[01]|[12]\d|0?\d)/01(/2026)?\b",   # any day in Jan 2026, e.g. 31/01, 15/01/2026
+        r"\btrước\s+01/02(/2026)?\b",              # "trước 01/02" / "trước 01/02/2026"
+        r"\btrước\s+1/2(/2026)?\b",                # "trước 1/2"
+        r"\btháng\s*(1|01)\s*(năm\s*2026)?\b",     # "tháng 1 2026" / "tháng 01"
+        r"\bjanuary\s*2026\b",                      # English form
+        r"\bv3\b",                                  # explicit mention of v3
+    ]
+    _is_pre_v4 = any(re.search(p, task_lower) for p in _pre_v4_date_patterns)
+
+    if _is_pre_v4:
+        policy_name = "refund_policy_v3"
+        policy_version_note = (
+            "Đơn hàng đặt trước 01/02/2026 áp dụng chính sách hoàn tiền v3 "
+            "(không có trong tài liệu hiện tại). "
+            "Synthesis cần thông báo giới hạn này cho người dùng."
+        )
+        # v3 docs are unavailable → policy cannot be confirmed → flag as not applicable
+        policy_applies = False
+        exceptions_found.append({
+            "type": "pre_v4_policy_version",
+            "rule": (
+                "Đơn hàng được đặt trước ngày 01/02/2026. "
+                "Chính sách hoàn tiền v4 không áp dụng; "
+                "v3 áp dụng nhưng không có trong tài liệu hiện tại (Điều 1, policy_refund_v4.txt)."
+            ),
+            "source": "policy_refund_v4.txt",
+        })
+
+    # Sprint 2: Gọi LLM để phân tích phức tạp hơn (nếu có chunks)
+    llm_analysis = _analyze_policy_with_llm(task, chunks, exceptions_found, policy_version_note)
 
     sources = list({c.get("source", "unknown") for c in chunks if c})
+
+    # print llm_analysis for debugging
+    print(f"LLM analysis:\n{llm_analysis}\n---")
 
     return {
         "policy_applies": policy_applies,
@@ -138,7 +236,7 @@ def analyze_policy(task: str, chunks: list) -> dict:
         "exceptions_found": exceptions_found,
         "source": sources,
         "policy_version_note": policy_version_note,
-        "explanation": "Analyzed via rule-based policy check. TODO: upgrade to LLM-based analysis.",
+        "explanation": llm_analysis,
     }
 
 
@@ -248,7 +346,7 @@ if __name__ == "__main__":
     ]
 
     for tc in test_cases:
-        print(f"\n▶ Task: {tc['task'][:70]}...")
+        print(f"\n▶ Task: {tc['task']}")
         result = run(tc.copy())
         pr = result.get("policy_result", {})
         print(f"  policy_applies: {pr.get('policy_applies')}")
