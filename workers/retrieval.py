@@ -17,6 +17,9 @@ Gọi độc lập để test:
 
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ─────────────────────────────────────────────
 # Worker Contract (xem contracts/worker_contracts.yaml)
@@ -34,14 +37,14 @@ def _get_embedding_fn():
     TODO Sprint 1: Implement dùng OpenAI hoặc Sentence Transformers.
     """
     # Option A: Sentence Transformers (offline, không cần API key)
-    try:
-        from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer("all-MiniLM-L6-v2")
-        def embed(text: str) -> list:
-            return model.encode([text])[0].tolist()
-        return embed
-    except ImportError:
-        pass
+    # try:
+    #     from sentence_transformers import SentenceTransformer
+    #     model = SentenceTransformer("all-MiniLM-L6-v2")
+    #     def embed(text: str) -> list:
+    #         return model.encode([text])[0].tolist()
+    #     return embed
+    # except ImportError:
+    #     pass
 
     # Option B: OpenAI (cần API key)
     try:
@@ -70,7 +73,7 @@ def _get_collection():
     import chromadb
     client = chromadb.PersistentClient(path="./chroma_db")
     try:
-        collection = client.get_collection("day09_docs")
+        collection = client.get_collection("rag_lab")
     except Exception:
         # Auto-create nếu chưa có
         collection = client.get_or_create_collection(
