@@ -34,7 +34,6 @@ Quy tắc nghiêm ngặt:
 def _call_llm(messages: list) -> str:
     """
     Gọi LLM để tổng hợp câu trả lời.
-    TODO Sprint 2: Implement với OpenAI hoặc Gemini.
     """
     # Option A: OpenAI
     try:
@@ -95,10 +94,12 @@ def _estimate_confidence(chunks: list, answer: str, policy_result: dict) -> floa
     - Có exceptions không
     - Answer có abstain không
 
-    TODO Sprint 2: Có thể dùng LLM-as-Judge để tính confidence chính xác hơn.
     """
     if not chunks:
         return 0.1  # Không có evidence → low confidence
+
+    if answer.startswith("[SYNTHESIS ERROR]"):
+        return 0.1
 
     if "Không đủ thông tin" in answer or "không có trong tài liệu" in answer.lower():
         return 0.3  # Abstain → moderate-low
@@ -116,6 +117,22 @@ def _estimate_confidence(chunks: list, answer: str, policy_result: dict) -> floa
     return round(max(0.1, confidence), 2)
 
 
+
+def _has_citation(text: str) -> bool:
+    """Kiem tra answer da co citation kieu [1] hoac [source_name] chua."""
+    if not text:
+        return False
+    return "[" in text and "]" in text
+
+def _ensure_citations(answer: str, sources: list) -> str:
+    """Neu chua co citation, gan them cuoi answer."""
+    if not sources:
+        return answer
+    if _has_citation(answer):
+        return answer
+    cite = " ".join(f"[{s}]" for s in sources)
+    return f"{answer}\nNguon: {cite}"
+
 def synthesize(task: str, chunks: list, policy_result: dict) -> dict:
     """
     Tổng hợp câu trả lời từ chunks và policy context.
@@ -123,6 +140,11 @@ def synthesize(task: str, chunks: list, policy_result: dict) -> dict:
     Returns:
         {"answer": str, "sources": list, "confidence": float}
     """
+    if not chunks:
+        # Khong co evidence -> abstain ngay, khong goi LLM
+        answer = "Khong du thong tin trong tai lieu noi bo."
+        return {"answer": answer, "sources": [], "confidence": 0.1}
+
     context = _build_context(chunks, policy_result)
 
     # Build messages
@@ -140,6 +162,7 @@ Hãy trả lời câu hỏi dựa vào tài liệu trên."""
 
     answer = _call_llm(messages)
     sources = list({c.get("source", "unknown") for c in chunks})
+    answer = _ensure_citations(answer, sources)
     confidence = _estimate_confidence(chunks, answer, policy_result)
 
     return {
@@ -177,6 +200,7 @@ def run(state: dict) -> dict:
         state["final_answer"] = result["answer"]
         state["sources"] = result["sources"]
         state["confidence"] = result["confidence"]
+        state["hitl_triggered"] = bool(state.get("hitl_triggered", False) or result["confidence"] < 0.4)
 
         worker_io["output"] = {
             "answer_length": len(result["answer"]),
