@@ -287,6 +287,9 @@ if __name__ == "__main__":
         "SLA xử lý ticket P1 là bao lâu?",
         "Khách hàng Flash Sale yêu cầu hoàn tiền vì sản phẩm lỗi — được không?",
         "Cần cấp quyền Level 3 để khắc phục P1 khẩn cấp. Quy trình là gì?",
+        # ✅ Case trigger human_review: chứa "err-" + "không rõ" (risk_keyword)
+        "Hệ thống báo ERR-5021 không rõ nguyên nhân, cần xử lý gấp",
+        "Cần hoàn tiền cho ticket P1 đang escalate lên Jira, khách hàng phàn nàn sản phẩm lỗi."
     ]
 
     for query in test_queries:
@@ -295,7 +298,7 @@ if __name__ == "__main__":
         print(f"  Route   : {result['supervisor_route']}")
         print(f"  Reason  : {result['route_reason']}")
         print(f"  Workers : {result['workers_called']}")
-        print(f"  Answer  : {result['final_answer'][:100]}...")
+        print(f"  Answer  : {result['final_answer']}...")
         print(f"  Confidence: {result['confidence']}")
         print(f"  Latency : {result['latency_ms']}ms")
 
